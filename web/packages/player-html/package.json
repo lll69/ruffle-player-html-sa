@@ -1,0 +1,33 @@
+{
+    "name": "ruffle-player-single-html",
+    "version": "0.6.0",
+    "description": "Single standalone HTML player for ruffle",
+    "license": "(MIT OR Apache-2.0)",
+    "private": true,
+    "type": "module",
+    "keywords": [
+        "flash",
+        "swf"
+    ],
+    "scripts": {
+        "build": "WEBPACK_PACKAGE=webpack-packager npx webpack && node inline_html.js",
+        "wdio": "wdio run wdio.conf.ts",
+        "checkTypes": "tsc --noemit"
+    },
+    "dependencies": {
+        "ruffle-core": "^0.6.0"
+    },
+    "devDependencies": {
+        "@types/chai": "^5.2.3",
+        "@types/chai-html": "^3.0.0",
+        "base85": "^3.2.0",
+        "buffer": "^6.0.3",
+        "html-minifier-terser": "^7.2.0",
+        "json5": "^2.2.3",
+        "ts-node": "^10.9.2",
+        "webpack-cli": "^7.2.3",
+        "webpack-dev-server": "^6.0.0",
+        "webpack-packager": "^1.0.0",
+        "zlibjs": "^0.3.1"
+    }
+}
