@@ -2,12 +2,12 @@
     "extends": "@tsconfig/strictest/tsconfig.json",
     "compilerOptions": {
         "composite": true,
-        "module": "es2020",
-        "moduleResolution": "NodeNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "target": "es2021",
         "rootDir": ".",
         "outDir": "dist",
         "types": ["node", "@wdio/globals/types", "@wdio/mocha-framework", "ruffle-core"]
     },
-    "include": ["test/**/*", "wdio.conf.ts"],
+    "include": ["js/**/*", "test/**/*", "wdio.conf.ts"],
 }
