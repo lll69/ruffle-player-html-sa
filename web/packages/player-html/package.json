@@ -22,6 +22,7 @@
         "@types/chai-html": "^3.0.0",
         "base85": "^3.2.0",
         "buffer": "^6.0.3",
+        "copy-webpack-plugin": "^14.0.0",
         "html-minifier-terser": "^7.2.0",
         "json5": "^2.2.3",
         "ts-node": "^10.9.2",
