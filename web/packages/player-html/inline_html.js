@@ -64,8 +64,9 @@ function minimizeHtml(htmlContent) {
 }
 
 async function main() {
+    console.log("Packaging...");
     const dynSrcContent = generateDynSrcContent("dist", /^(core\.ruffle\..+\.js|.+\.wasm)$/);
-    const playerJs = replaceJs(generatePlayerJs("dist/dynSrc.js", "dist/ruffle.js", dynSrcContent));
+    const playerJs = replaceJs(generatePlayerJs("dist/dynSrc.js", "dist/ruffleUnpacked.js", dynSrcContent));
     const htmlNames = [
         "player.html",
         "player-mobile-landscape.html",
@@ -84,6 +85,7 @@ async function main() {
     htmlNames.forEach((name, idx) => {
         writeFileSync(join("dist", name), htmlContents[idx], "utf-8");
     });
+    writeFileSync("dist/ruffle.js", playerJs, "utf-8");
 }
 
 main();

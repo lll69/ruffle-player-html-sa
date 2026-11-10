@@ -20,7 +20,7 @@ export default function (_env, _argv) {
     return {
         mode,
         entry: {
-            ruffle: "./js/ruffle.js",
+            ruffleUnpacked: "./js/ruffle.js",
             dynSrc: "./js/dynSrc.js",
         },
         output: {
