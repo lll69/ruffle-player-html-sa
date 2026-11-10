@@ -10,7 +10,7 @@
         "swf"
     ],
     "scripts": {
-        "build": "WEBPACK_PACKAGE=webpack-packager npx webpack && node inline_html.js",
+        "build": "cross-env WEBPACK_PACKAGE=webpack-packager npx webpack && node inline_html.js",
         "wdio": "wdio run wdio.conf.ts",
         "checkTypes": "tsc --noemit"
     },
