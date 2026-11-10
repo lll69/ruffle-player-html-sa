@@ -1,4 +1,5 @@
-import url from "url";
+import process from "node:process";
+import url, { URL } from "url";
 import json5 from "json5";
 import CopyPlugin from "copy-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
@@ -14,7 +15,7 @@ function transformPackage(content) {
 
 export default function (_env, _argv) {
     const mode = process.env.NODE_ENV || "production";
-    console.log(`Building ${mode}...`);
+    globalThis.console.log(`Building ${mode}...`);
 
     return {
         mode,

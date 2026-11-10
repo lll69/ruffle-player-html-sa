@@ -14,6 +14,10 @@ export default tseslint.config(
             "**/dist/**",
             "**/docs/**",
             "packages/selfhosted/test_assets/swfobject.js",
+            "packages/player-html/test_assets/swfobject.js",
+            "packages/player-html/inline_html.js",
+            "packages/player-html/js/dynSrc.js",
+            "packages/player-html/js/ruffle.js",
         ],
     },
     {
@@ -74,7 +78,11 @@ export default tseslint.config(
         },
     },
     {
-        files: ["packages/core/src/**", "packages/selfhosted/js/**"],
+        files: [
+            "packages/core/src/**",
+            "packages/selfhosted/js/**",
+            "packages/player-html/js/**",
+        ],
         languageOptions: {
             globals: globals.browser,
         },

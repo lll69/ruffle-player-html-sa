@@ -9,7 +9,7 @@ import { gzipSync } from "node:zlib";
 const suffixToMime = {
     ".wasm": "application/wasm",
     ".js": "application/javascript",
-}
+};
 
 // encode base85-gzip files
 function generateDynSrcContent(distDir, resRegex) {
