@@ -4,7 +4,6 @@ use crate::avm1::Attribute;
 use crate::avm1::Avm1;
 use crate::avm1::Object;
 use crate::avm1::Value;
-use crate::avm1::VariableDumper;
 use crate::avm1::{Activation, ActivationIdentifier};
 use crate::avm2::object::EventObject as Avm2EventObject;
 use crate::avm2::{
@@ -25,7 +24,7 @@ use crate::backend::{
 };
 use crate::compatibility_rules::CompatibilityRules;
 use crate::compatibility_rules::UrlRewriteStage;
-use crate::config::Letterbox;
+use crate::config::{Letterbox, NetworkingAccessMode};
 use crate::context::{ActionQueue, ActionType, RenderContext, UpdateContext};
 use crate::context_menu::{
     BuiltInItemFlags, ContextMenuCallback, ContextMenuItem, ContextMenuState,
@@ -414,6 +413,9 @@ pub struct Player {
     /// The root SWF URL provided to ActionScript. If None,
     /// the actual loaded url will be used
     spoofed_url: Option<String>,
+
+    /// The value of "allowNetworking" param
+    allow_networking: NetworkingAccessMode,
 
     /// Any compatibility rules to apply for this movie.
     compatibility_rules: CompatibilityRules,
@@ -1083,23 +1085,19 @@ impl Player {
     /// concerns that need to resolve with specific priority.
     ///
     /// 0. Transform gamepad button events into key events.
-    /// 1. (In `avm_debug` builds)
-    ///    If Ctrl-Alt-V is pressed, dump all AVM1 variables in the player.
-    ///    If Ctrl-Alt-D is pressed, toggle debug output for AVM1 and AVM2.
-    ///    If Ctrl-Alt-F is pressed, dump the display object tree.
-    /// 2. If the incoming event is text input or key input that could be
+    /// 1. If the incoming event is text input or key input that could be
     ///    related to text input (e.g. pressing a letter key), we dispatch a
     ///    key press event onto the stage.
-    /// 3. If the event from step 3 was not handled, we check if an `EditText`
+    /// 2. If the event from step 3 was not handled, we check if an `EditText`
     ///    object is in focus and dispatch a text-control event to said object.
-    /// 4. If the incoming event is text input, and neither step 3 nor step 4
+    /// 3. If the incoming event is text input, and neither step 3 nor step 4
     ///    resulted in an event being handled, we dispatch a text input event
     ///    to the currently focused `EditText` (if present).
-    /// 5. Regardless of all prior event handling, we dispatch the event
+    /// 4. Regardless of all prior event handling, we dispatch the event
     ///    through the stage normally.
-    /// 6. Then, we dispatch the event through AVM1 global listener objects.
-    /// 7. The AVM1 action queue is drained.
-    /// 8. Mouse state is updated. This triggers button rollovers, which are a
+    /// 5. Then, we dispatch the event through AVM1 global listener objects.
+    /// 6. The AVM1 action queue is drained.
+    /// 7. Mouse state is updated. This triggers button rollovers, which are a
     ///    second wave of event processing.
     fn handle_input_event(&mut self, event: PlayerEvent) -> bool {
         let mut player_event_handled = false;
@@ -1112,79 +1110,6 @@ impl Player {
             .input
             .get_mouse_down_buttons()
             .symmetric_difference(prev_mouse_buttons);
-
-        if cfg!(feature = "avm_debug") {
-            match event {
-                InputEvent::KeyDown {
-                    key_code: KeyCode::V,
-                    ..
-                } if self.input.is_key_down(KeyCode::CONTROL)
-                    && self.input.is_key_down(KeyCode::ALT) =>
-                {
-                    self.mutate_with_update_context(|context| {
-                        let mut dumper = VariableDumper::new("  ");
-
-                        let mut activation = Activation::from_stub(
-                            context,
-                            ActivationIdentifier::root("[Variable Dumper]"),
-                        );
-
-                        dumper.print_variables(
-                            "Global Variables:",
-                            "_global",
-                            activation.global_object(),
-                            &mut activation,
-                        );
-
-                        for display_object in activation.context.stage.iter_render_list() {
-                            let level = display_object.depth();
-                            if let Some(object) = display_object.object1() {
-                                dumper.print_variables(
-                                    &format!("Level #{level}:"),
-                                    &format!("_level{level}"),
-                                    object,
-                                    &mut activation,
-                                );
-                            }
-                        }
-                        tracing::info!("Variable dump:\n{}", dumper.output());
-                    });
-                }
-                InputEvent::KeyDown {
-                    key_code: KeyCode::D,
-                    ..
-                } if self.input.is_key_down(KeyCode::CONTROL)
-                    && self.input.is_key_down(KeyCode::ALT) =>
-                {
-                    self.mutate_with_update_context(|context| {
-                        if context.avm1.show_debug_output() {
-                            tracing::info!(
-                                "AVM Debugging turned off! Press CTRL+ALT+D to turn on again."
-                            );
-                            context.avm1.set_show_debug_output(false);
-                            context.avm2.set_show_debug_output(false);
-                        } else {
-                            tracing::info!(
-                                "AVM Debugging turned on! Press CTRL+ALT+D to turn off."
-                            );
-                            context.avm1.set_show_debug_output(true);
-                            context.avm2.set_show_debug_output(true);
-                        }
-                    });
-                }
-                InputEvent::KeyDown {
-                    key_code: KeyCode::F,
-                    ..
-                } if self.input.is_key_down(KeyCode::CONTROL)
-                    && self.input.is_key_down(KeyCode::ALT) =>
-                {
-                    self.mutate_with_update_context(|context| {
-                        context.stage.display_render_tree(0);
-                    });
-                }
-                _ => {}
-            }
-        }
 
         self.mutate_with_update_context(|context| {
             let button_event = ButtonKeyCode::from_input_event(&event)
@@ -2338,6 +2263,7 @@ impl Player {
             let mut update_context = UpdateContext {
                 player_version: this.player_version,
                 player_mode: this.player_mode,
+                allow_networking: this.allow_networking,
                 root_swf,
                 library,
                 rng: &mut this.rng,
@@ -2670,6 +2596,7 @@ pub struct PlayerBuilder {
     viewport_scale_factor: f64,
     load_behavior: LoadBehavior,
     spoofed_url: Option<String>,
+    allow_networking: NetworkingAccessMode,
     compatibility_rules: CompatibilityRules,
     gamepad_button_mapping: HashMap<GamepadButton, KeyCode>,
     player_version: Option<u8>,
@@ -2728,6 +2655,7 @@ impl PlayerBuilder {
             viewport_scale_factor: 1.0,
             load_behavior: LoadBehavior::Streaming,
             spoofed_url: None,
+            allow_networking: NetworkingAccessMode::All,
             compatibility_rules: CompatibilityRules::default(),
             gamepad_button_mapping: HashMap::new(),
             player_version: None,
@@ -2903,6 +2831,11 @@ impl PlayerBuilder {
     /// Sets the root SWF URL provided to ActionScript.
     pub fn with_spoofed_url(mut self, url: Option<String>) -> Self {
         self.spoofed_url = url;
+        self
+    }
+
+    pub fn with_allow_networking(mut self, allow_networking: NetworkingAccessMode) -> Self {
+        self.allow_networking = allow_networking;
         self
     }
 
@@ -3143,6 +3076,7 @@ impl PlayerBuilder {
                 self_reference: self_ref.clone(),
                 load_behavior: self.load_behavior,
                 spoofed_url: self.spoofed_url.clone(),
+                allow_networking: self.allow_networking,
                 compatibility_rules: self.compatibility_rules.clone(),
                 stub_tracker: StubCollection::new(),
                 notification_sender: self.notification_sender,
